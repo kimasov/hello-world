@@ -96,63 +96,65 @@ WorkArea.prototype.clearContent = function() {
 */
 WorkArea.prototype.initCoeff = function(oBox) {
 
-    var iAvailHorPx = this.iW - (((this.oPreset.iSectionsCount - 1) * this.oSettings.iModulesOffset) + (this.oSettings.iEdgeOffset * 2));
-    var iAvailVerPx = this.iH - (this.oSettings.iEdgeOffset * 2);
-
-    this.oCoef.iAvailHor = iAvailHorPx;
-    this.oCoef.iAvailVer = iAvailVerPx;
+    //var iAvailHorPx = this.iW - (((this.oPreset.iSectionsCount - 1) * this.oSettings.iModulesOffset) + (this.oSettings.iEdgeOffset * 2));
+    //var iAvailVerPx = this.iH - (this.oSettings.iEdgeOffset * 2);
 
     this.oCoef.pxToMmHor = this.iRealW / this.iW;
     this.oCoef.pxToMmVer = this.iRealH / this.iH;
 
+    this.oCoef.mmToPxHor = this.iW / this.iRealW;
+    this.oCoef.mmToPxVer = this.iH / this.iRealH;
+
+    var iAvailHorPx = this.iW - ((((this.oPreset.iSectionsCount - 1) * this.oSettings.iModulesOffset) + (this.oSettings.iEdgeOffset * 2)) * this.oCoef.mmToPxHor);
+    var iAvailVerPx = this.iH - (this.oSettings.iEdgeOffset * 2) * this.oCoef.mmToPxVer;
+
+    this.oCoef.iAvailHor = iAvailHorPx;
+    this.oCoef.iAvailVer = iAvailVerPx;
+
     this.oCoef.pxToPctHor = 100 / iAvailHorPx;
     this.oCoef.pxToPctVer = 100 / iAvailVerPx;
 
-    this.oCoef.mmToPxHor = this.iW / this.iRealW;
-    this.oCoef.mmToPxVer = this.iH / this.iRealH;
-    this.oCoef.mmToPct = false;
-
     this.oCoef.pctToPxHor = iAvailHorPx / 100;
     this.oCoef.pctToPxVer = iAvailVerPx / 100;
-    this.oCoef.pctToMm = false;
-
-    console.log(this.oCoef);
 }
 
-WorkArea.prototype.getConvertedValue = function(iValue, sMethod) {
+/*
+Метод для пересчета  коэфицентов
+*/
+WorkArea.prototype.getConvertedValue = function(iValue, sMethod, oContext) {
 
     var iResult;
 
     switch(sMethod) {
         case 'pxtommhor':
-            iResult = iValue * this.oCoef.pxToMmHor;
+            iResult = iValue * oContext.oCoef.pxToMmHor;
             break;
         case 'pxtommver':
-            iResult = iValue * this.oCoef.pxToMmVer;
+            iResult = iValue * oContext.oCoef.pxToMmVer;
             break;
         case 'pxtopcthor':
-            iResult = iValue * this.oCoef.pxToPctHor;
+            iResult = iValue * oContext.oCoef.pxToPctHor;
             break;
         case 'pxtopctver':
-            iResult = iValue * this.oCoef.pxToPctVer;
+            iResult = iValue * oContext.oCoef.pxToPctVer;
             break;
         case 'mmtopxhor':
-            iResult = iValue * this.oCoef.mmToPxHor;
+            iResult = iValue * oContext.oCoef.mmToPxHor;
             break;
         case 'mmtopxver':
-            iResult = iValue * this.oCoef.mmToPxVer;
+            iResult = iValue * oContext.oCoef.mmToPxVer;
             break;
         case 'pcttopxhor':
-            iResult = iValue * this.oCoef.pctToPxHor;
+            iResult = iValue * oContext.oCoef.pctToPxHor;
             break;
         case 'pcttopxver':
-            iResult = iValue * this.oCoef.pctToPxVer;
+            iResult = iValue * oContext.oCoef.pctToPxVer;
             break;
         default:
             console.log('Метод конвертации не найден');
     }
 
-    return iReslut;
+    return iResult;
 }
 
 WorkArea.prototype.setPreset = function(oPreset) {
@@ -176,6 +178,52 @@ WorkArea.prototype.setPicture = function(oPicture) {
 }
 
 WorkArea.prototype.drawView = function() {
+
+    var nSection, iEdge, iOffset, oContext, iLeft, iWidth, iWidthCumulative = 0;
+
+    iEdge = this.__proto__.getConvertedValue(this.oSettings.iEdgeOffset, 'mmtopxhor', this);
+    iOffset = this.__proto__.getConvertedValue(this.oSettings.iModulesOffset, 'mmtopxhor', this);
+    oContext = this;
+
+    this.oPreset.arSections.forEach(function(oSection) {
+
+        nSection = document.createElement('div');
+        nSection.className = 'section';
+
+        nSection.style.top = oContext.__proto__.getConvertedValue(((100 - oSection.iH) / 2) + oSection.iHP, 'pcttopxver', oContext) + iEdge + 'px';
+
+        if(oSection.i == 1) {
+            iLeft = iEdge;
+        } else {
+            iLeft = iEdge + (iOffset * (oSection.i - 1));
+        }
+
+        nSection.style.left = iLeft + iWidthCumulative + 'px';
+
+        iWidth = oContext.__proto__.getConvertedValue(oSection.iW, 'pcttopxhor', oContext);
+        nSection.style.width = iWidth + 'px';
+        iWidthCumulative += iWidth;
+        nSection.style.height = oContext.__proto__.getConvertedValue(oSection.iH, 'pcttopxver', oContext) + 'px';
+
+        oContext.nNode.appendChild(nSection);
+    });
+}
+
+WorkArea.prototype.getVerticalEditNodes = function(iSecId) {
+
+    var nTop, nCenter, nBottom;
+
+    nTop = document.createElement('div');
+    nTop.className = 'v-edit-top';
+    nTop.setAttribute('data-section-id');
+
+    nTop.onmousedown = function() {
+
+    };
+
+    nTop.onmouseup = function() {
+
+    }
 
 }
 
