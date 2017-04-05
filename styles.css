@@ -1,0 +1,6 @@
+#workarea {
+    position: fixed;
+    border: 1px solid orange;
+    background-size: cover;
+    opacity: 0.5;
+}
