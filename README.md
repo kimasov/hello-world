@@ -1,3 +1,2 @@
-# hello-world
-learning to use git-hub
-with feature
+# section-editor
+for own project
