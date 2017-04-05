@@ -119,8 +119,40 @@ WorkArea.prototype.initCoeff = function(oBox) {
     console.log(this.oCoef);
 }
 
-WorkArea.prototype.getConvertedValue = function(sMethod) {
+WorkArea.prototype.getConvertedValue = function(iValue, sMethod) {
 
+    var iResult;
+
+    switch(sMethod) {
+        case 'pxtommhor':
+            iResult = iValue * this.oCoef.pxToMmHor;
+            break;
+        case 'pxtommver':
+            iResult = iValue * this.oCoef.pxToMmVer;
+            break;
+        case 'pxtopcthor':
+            iResult = iValue * this.oCoef.pxToPctHor;
+            break;
+        case 'pxtopctver':
+            iResult = iValue * this.oCoef.pxToPctVer;
+            break;
+        case 'mmtopxhor':
+            iResult = iValue * this.oCoef.mmToPxHor;
+            break;
+        case 'mmtopxver':
+            iResult = iValue * this.oCoef.mmToPxVer;
+            break;
+        case 'pcttopxhor':
+            iResult = iValue * this.oCoef.pctToPxHor;
+            break;
+        case 'pcttopxver':
+            iResult = iValue * this.oCoef.pctToPxVer;
+            break;
+        default:
+            console.log('Метод конвертации не найден');
+    }
+
+    return iReslut;
 }
 
 WorkArea.prototype.setPreset = function(oPreset) {
