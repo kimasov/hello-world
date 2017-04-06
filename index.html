@@ -14,16 +14,16 @@
             var oPicture = new Picture('./images/macro.jpg', 1920, 1200, false, false);
 
             var jsonPreset = `[
-                {"iW":30, "iH":60, "iHP":-5},
-                {"iW":40, "iH":100, "iHP":0},
-                {"iW":30, "iH":60, "iHP":5}
+                {"iW":32, "iH":75, "iHP":-5},
+                {"iW":36, "iH":100, "iHP":0},
+                {"iW":32, "iH":75, "iHP":5}
             ]`;
 
             var oPreset = new Preset(true, false);
 
             oPreset.getSectionsFromJson(jsonPreset);
 
-            var oSettings = new Settings(30, 30, 300, 0.5);
+            var oSettings = new Settings(25, 25, 300, 0.5);
 
             var oWorkArea = new WorkArea(document.getElementById('workarea'), oSettings, 1000, 700);
 
@@ -37,7 +37,9 @@
 
             oWorkArea.initCoeff();
 
-            console.log(oWorkArea);
+            oWorkArea.drawView();
+
+            //console.log(oWorkArea);
         </script>
     </body>
 </body>

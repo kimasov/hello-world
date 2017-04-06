@@ -4,3 +4,13 @@
     background-size: cover;
     opacity: 0.5;
 }
+
+.section {
+    position: absolute;
+    box-sizing: border-box;
+    border: 5px solid grey;
+}
+
+.section:hover {
+    border: 5px solid red;
+}
