@@ -14,3 +14,13 @@
 .section:hover {
     border: 5px solid red;
 }
+
+.v-edit-top {
+    width: 100px;
+    height: 50px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: red;
+    margin: auto;
+}

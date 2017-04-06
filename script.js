@@ -20,6 +20,7 @@ function WorkArea(nNode, oSettings, iPrefWidth, iPrefHeight) {
     this.iRealH = false;                                                        //Установленная реальная высота картины
     this.oRange = {};
     this.oCoef = {};
+    this.oEditor = {activeElem: false};
 }
 
 /*
@@ -32,7 +33,7 @@ WorkArea.prototype.initNode = function() {
         return;
     }
 
-    var iW, iH, iTop, iLeft;
+    var iW, iH, iTop, iLeft, oContext = this;
 
     if(this.oPicture.sOrientation === 'horizontal') {
 
@@ -63,9 +64,23 @@ WorkArea.prototype.initNode = function() {
     this.nNode.style.backgroundImage = 'url(' + this.oPicture.fpResizedSrc + ')'
 
     this.nNode.onmousemove = function(e) {
-        this.mouse = {
+        oContext.mouse = {
             x: e.pageX - iLeft,
             y: e.pageY - iTop
+        }
+
+        if(oContext.oEditor.activeElem) {
+            var sType = oContext.oEditor.activeElem.getAttribute('data-editor-type');
+
+            switch(sType) {
+                case 'in-v-top-drag':
+                case 'in-v-bottom-drag':
+                case 'in-v-center-drag':
+                    oContext.oEditor.activeElem.style.top = oContext.mouse.y - oContext.oEditor.iStartY + oContext.oEditor.iStartTop + 'px';
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }
@@ -205,30 +220,89 @@ WorkArea.prototype.drawView = function() {
         iWidthCumulative += iWidth;
         nSection.style.height = oContext.__proto__.getConvertedValue(oSection.iH, 'pcttopxver', oContext) + 'px';
 
+        nSection.appendChild(oContext.__proto__.getVerticalEditNodes(oContext, oSection.i));
+
         oContext.nNode.appendChild(nSection);
     });
 }
 
-WorkArea.prototype.getVerticalEditNodes = function(iSecId) {
+WorkArea.prototype.getVerticalEditNodes = function(oContext, iSecId) {
 
     var nTop, nCenter, nBottom;
 
     nTop = document.createElement('div');
     nTop.className = 'v-edit-top';
-    nTop.setAttribute('data-section-id');
+    nTop.setAttribute('data-section-id', iSecId);
+    nTop.setAttribute('data-editor-type', 'in-v-top-drag')
 
-    nTop.onmousedown = function() {
-
+    nTop.onmousedown = function(e) {
+        e.preventDefault();
+        if(!oContext.oEditor.activeElem) {
+            oContext.oEditor.activeElem = this;
+            oContext.oEditor.iStartX = oContext.mouse.x;
+            oContext.oEditor.iStartY = oContext.mouse.y;
+            oContext.oEditor.iStartTop = parseInt(this.style.top) || 0;
+        }
     };
 
     nTop.onmouseup = function() {
-
+        oContext.__proto__.EditModelByDrag(oContext, oContext.mouse.x, oContext.mouse.y);
     }
+
+    return nTop;
 
 }
 
-WorkArea.prototype.updateView = function() {
+WorkArea.prototype.EditModelByDrag = function(oContext, iX, iY) {
 
+    var sEditType, iYDelta, iXDelta, iSecId, oSection;
+    if(oContext.oEditor.activeElem) {
+        sEditType = oContext.oEditor.activeElem.getAttribute('data-editor-type');
+    } else {
+        return;
+    }
+    switch(sEditType) {
+        case 'in-v-top-drag':
+        case 'in-v-bottom-drag':
+            //перевести дельту в проценты
+            //добавить к ширине
+            //половину убрать из отсупа сверху
+            //половину прибавить в вертикальной позиции
+            iYDelta = iY - oContext.oEditor.iStartY;
+            iYDelta = oContext.__proto__.getConvertedValue(iYDelta, 'pxtopctver', oContext);
+            iSecId = oContext.oEditor.activeElem.getAttribute('data-section-id');
+            oSection = oContext.oPreset.__proto__.getSectionById(oContext, iSecId);
+            oSection.iH += iYDelta;
+            oSection.iHP += iYDelta / 2;
+            oContext.oPreset.__proto__.editSectionById(oContext, iSecId, oSection);
+            oContext.__proto__.reDrawPreset(oContext);
+            break;
+        case 'in-v-center-drag':
+            //перевести дельту в проценты
+            //добавить к вертикальной позиции
+            break;
+        case 'in-h':
+            //перевести дельту в проценты
+            //получить левую и правую секции
+            //прибавить дельту к ширине колонн
+            break;
+        case 'o-h-pic-size':
+            //перевести дельту в милиметры
+            //пересчитать все представление
+            break;
+        default:
+            break;
+    }
+
+    oContext.oEditor.activeElem = false;
+    oContext.oEditor.iStartY = false;
+    oContext.oEditor.iStartX = false;
+
+}
+
+WorkArea.prototype.reDrawPreset = function(oContext) {
+    oContext.nNode.innerHTML = '';
+    oContext.__proto__.initNode();
 }
 
 /*
@@ -258,6 +332,24 @@ function Preset(bAllowHorizontal, bAllowVertical) {
     this.iSectionsCount = 0;
     this.bAllowHorizontal = bAllowHorizontal;
     this.bAllowVertical = bAllowVertical;
+}
+
+Preset.prototype.getSectionById = function(oContext, iSecId) {
+    for(var i = 0; i < oContext.oPreset.arSections.length; i++) {
+        var oSection = oContext.oPreset.arSections[i];
+        if(oSection.i = iSecId) {
+            return oSection;
+        }
+    }
+}
+
+Preset.prototype.editSectionById = function(oContext, iSecId, oSection) {
+    for(var i = 0; i < oContext.oPreset.arSections.length; i++) {
+        var oSection = oContext.oPreset.arSections[i];
+        if(oSection.i = iSecId) {
+            oContext.oPreset.arSections[i] = oSection;
+        }
+    }
 }
 
 Preset.prototype.appendSection = function(oSection) {                           //Добавляет по одной секции
