@@ -9,6 +9,9 @@
     position: absolute;
     box-sizing: border-box;
     border: 5px solid grey;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
 }
 
 .section:hover {
@@ -19,8 +22,22 @@
     width: 100px;
     height: 50px;
     position: relative;
-    display: flex;
-    flex-direction: column;
     background-color: red;
-    margin: auto;
+    align-self: flex-start;
+}
+
+.v-edit-cen {
+    width: 100px;
+    height: 50px;
+    position: relative;
+    background-color: green;
+    align-self: center;
+}
+
+.v-edit-bot {
+    width: 100px;
+    height: 50px;
+    position: relative;
+    background-color: blue;
+    align-self: flex-end;
 }

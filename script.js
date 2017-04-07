@@ -233,7 +233,13 @@ WorkArea.prototype.drawView = function(oContext) {
         iWidthCumulative += iWidth;
         nSection.style.height = oContext.__proto__.getConvertedValue(oSection.iH, 'pcttopxver', oContext) + 'px';
 
-        nSection.appendChild(oContext.__proto__.getVerticalEditNodes(oContext, oSection.i));
+        arVertEditNodes = oContext.__proto__.getVerticalEditNodes(oContext, oSection.i);
+
+        arVertEditNodes.forEach(function(nEdit) {
+            nSection.appendChild(nEdit);
+        });
+
+        //nSection.appendChild(oContext.__proto__.getVerticalEditNodes(oContext, oSection.i));
 
         oContext.nNode.appendChild(nSection);
     });
@@ -241,14 +247,14 @@ WorkArea.prototype.drawView = function(oContext) {
 
 WorkArea.prototype.getVerticalEditNodes = function(oContext, iSecId) {
 
-    var nTop, nCenter, nBottom;
+    var nTop, nCenter, nBottom, arNodes;
 
     nTop = document.createElement('div');
     nTop.className = 'v-edit-top';
     nTop.setAttribute('data-section-id', iSecId);
     nTop.setAttribute('data-editor-type', 'in-v-top-drag')
 
-    nTop.onmousedown = function(e) {
+    /*nTop.onmousedown = function(e) {
         e.preventDefault();
         if(!oContext.oEditor.activeElem) {
             oContext.oEditor.activeElem = this;
@@ -260,9 +266,37 @@ WorkArea.prototype.getVerticalEditNodes = function(oContext, iSecId) {
 
     nTop.onmouseup = function() {
         oContext.__proto__.EditModelByDrag(oContext, oContext.mouse.x, oContext.mouse.y);
-    }
+    }*/
 
-    return nTop;
+    nBottom = document.createElement('div');
+    nBottom.className = 'v-edit-bot';
+    nBottom.setAttribute('data-section-id', iSecId);
+    nBottom.setAttribute('data-editor-type', 'in-v-bottom-drag');
+
+    nCenter = document.createElement('div');
+    nCenter.className = 'v-edit-cen';
+    nCenter.setAttribute('data-section-id', iSecId);
+    nCenter.setAttribute('data-editor-type', 'in-v-center-drag');
+
+    arNodes = [nTop, nCenter, nBottom];
+
+    arNodes.forEach(function(nNode) {
+        nNode.onmousedown = function(e) {
+            e.preventDefault();
+            if(!oContext.oEditor.activeElem) {
+                oContext.oEditor.activeElem = this;
+                oContext.oEditor.iStartX = oContext.mouse.x;
+                oContext.oEditor.iStartY = oContext.mouse.y;
+                oContext.oEditor.iStartTop = parseInt(this.style.top) || 0;
+            }
+        };
+
+        nNode.onmouseup = function() {
+            oContext.__proto__.EditModelByDrag(oContext, oContext.mouse.x, oContext.mouse.y);
+        }
+    });
+
+    return arNodes;
 
 }
 
@@ -277,15 +311,18 @@ WorkArea.prototype.EditModelByDrag = function(oContext, iX, iY) {
     switch(sEditType) {
         case 'in-v-top-drag':
         case 'in-v-bottom-drag':
-            //перевести дельту в проценты
-            //добавить к ширине
-            //половину убрать из отсупа сверху
-            //половину прибавить в вертикальной позиции
             iYDelta = iY - oContext.oEditor.iStartY;
             iYDelta = oContext.__proto__.getConvertedValue(iYDelta, 'pxtopctver', oContext);
             iSecId = oContext.oEditor.activeElem.getAttribute('data-section-id');
             oSection = oContext.oPreset.__proto__.getSectionById(oContext, iSecId);
-            oSection.iH -= iYDelta;
+
+            if(sEditType == 'in-v-top-drag') {
+                oSection.iH -= iYDelta;
+            } else {
+                oSection.iH += iYDelta;
+                console.log('adfs');
+            }
+
             oSection.iHP += iYDelta / 2;
             oContext.oPreset.__proto__.editSectionById(oContext, iSecId, oSection);
             oContext.__proto__.reDrawPreset(oContext);
@@ -293,6 +330,14 @@ WorkArea.prototype.EditModelByDrag = function(oContext, iX, iY) {
         case 'in-v-center-drag':
             //перевести дельту в проценты
             //добавить к вертикальной позиции
+            iYDelta = iY - oContext.oEditor.iStartY;
+            iYDelta = oContext.__proto__.getConvertedValue(iYDelta, 'pxtopctver', oContext);
+            iSecId = oContext.oEditor.activeElem.getAttribute('data-section-id');
+            oSection = oContext.oPreset.__proto__.getSectionById(oContext, iSecId);
+
+            oSection.iHP += iYDelta;
+            oContext.oPreset.__proto__.editSectionById(oContext, iSecId, oSection);
+            oContext.__proto__.reDrawPreset(oContext);
             break;
         case 'in-h':
             //перевести дельту в проценты
@@ -315,9 +360,6 @@ WorkArea.prototype.EditModelByDrag = function(oContext, iX, iY) {
 
 WorkArea.prototype.reDrawPreset = function(oContext) {
     oContext.nNode.innerHTML = '';
-    //oContext.__proto__.setRealSizeByWidth(800, oContext);
-    //oContext.__proto__.initNode(oContext);
-    //oContext.__proto__.initCoeff(oContext);
     oContext.__proto__.drawView(oContext);
 }
 
