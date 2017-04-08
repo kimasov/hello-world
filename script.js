@@ -103,9 +103,24 @@ WorkArea.prototype.initNode = function(oContext) {
 
                     break;
                 case 'in-h-drag':
-                    //получить дельту
-                    //провести валидацию
-                    oContext.oEditor.activeElem.style.left = oContext.mouse.x - oContext.oEditor.iStartX + oContext.oEditor.iStartLeft + 'px';
+
+                    var iXDelta, bIsAllowed;
+
+                    iXDelta = oContext.mouse.x - oContext.oEditor.iStartX;
+                    iMinWidth = oContext.__proto__.getConvertedValue(oContext.oSettings.iFrameMinSize, 'mmtopxhor', oContext);
+
+                    oValues = {
+                        iXDelta: iXDelta,
+                        iMinWidth: iMinWidth
+                    }
+
+                    bIsAllowed = oContext.__proto__.validateDragEdit(oContext, sType, oValues);
+
+                    if(bIsAllowed) {
+                        oContext.oEditor.activeElem.style.left = oContext.mouse.x - oContext.oEditor.iStartX + oContext.oEditor.iStartLeft + 'px';
+                    } else {
+                        oContext.__proto__.EditModelByDrag(oContext, oContext.mouse.x, oContext.mouse.y);
+                    }
                     break;
                 default:
                     break;
@@ -156,6 +171,19 @@ WorkArea.prototype.validateDragEdit = function(oContext, sType, oValues) {
 
         case 'in-h-drag':
             //проверить что ширина обоих колонн, после модификаии не будет меньше заданной
+            if(oContext.oEditor.oSection.nLeftNode.width + oValues.iXDelta > iMinWidth
+                && oContext.oEditor.oSection.nRightNode.width - oValues.iXDelta > iMinWidth) {
+                bIsAllowed = true;
+            }
+
+            if(bIsAllowed === true) {
+                var nLeft = oContext.oEditor.oSection.nLeftNode.node;
+                var nRight = oContext.oEditor.oSection.nRightNode.node;
+
+                nLeft.style.width = oContext.oEditor.oSection.nLeftNode.width + oValues.iXDelta + 'px';
+                nRight.style.width = oContext.oEditor.oSection.nRightNode.width - oValues.iXDelta + 'px';
+                nRight.style.left = oContext.oEditor.oSection.nRightNode.left + oValues.iXDelta + 'px';
+            }
 
             break;
 
@@ -375,7 +403,8 @@ WorkArea.prototype.getHorizontalEditNodes = function(oContext, arHorEditPoints) 
                     },
                     nRightNode: {
                         node: rNode,
-                        width: parseFloat(rNode.style.width)
+                        width: parseFloat(rNode.style.width),
+                        left: parseFloat(rNode.style.left)
                     },
 
                 }
