@@ -20,62 +20,88 @@ function WorkArea(nNode, oSettings, iPrefWidth, iPrefHeight) {
     this.iRealH = false;                                                        //Установленная реальная высота картины
     this.oRange = {};
     this.oCoef = {};
+    this.oEditor = {activeElem: false};
 }
 
 /*
 Рисует рабочую область.
 */
-WorkArea.prototype.initNode = function() {
+WorkArea.prototype.initNode = function(oContext) {
 
-    if(!this.oPicture) {
+    if(!oContext) {
+        oContext = this;
+    }
+
+    if(!oContext.oPicture) {
         console.log('Не установлена картинка');
         return;
     }
 
     var iW, iH, iTop, iLeft;
 
-    if(this.oPicture.sOrientation === 'horizontal') {
+    if(oContext.oPicture.sOrientation === 'horizontal') {
 
-        iW = this.iPrefWidth;
+        iW = oContext.iPrefWidth;
 
-        iH = this.iPrefWidth * (this.oPicture.iOriginalH / this.oPicture.iOriginalW);
+        iH = oContext.iPrefWidth * (oContext.oPicture.iOriginalH / oContext.oPicture.iOriginalW);
 
-    } else if(this.oPicture.sOrientation === 'vertical') {
+    } else if(oContext.oPicture.sOrientation === 'vertical') {
 
-        iH = this.iPrefHeight;
+        iH = oContext.iPrefHeight;
 
-        iW = this.iPrefHeight * (this.oPicture.iOriginalW / this.oPicture.iOriginalH);
+        iW = oContext.iPrefHeight * (oContext.oPicture.iOriginalW / oContext.oPicture.iOriginalH);
     }
 
-    this.iW = iW;
-    this.iH = iH;
+    oContext.iW = iW;
+    oContext.iH = iH;
 
-    this.nNode.style.width = iW + 'px';
+    oContext.nNode.style.width = iW + 'px';
 
-    this.nNode.style.height = iH + 'px';
+    oContext.nNode.style.height = iH + 'px';
 
-    iTop = (this.windowH - iH) / 2;
-    this.nNode.style.top = iTop + 'px';
+    iTop = (oContext.windowH - iH) / 2;
+    oContext.nNode.style.top = iTop + 'px';
 
-    iLeft = (this.windowW - iW) / 2;
-    this.nNode.style.left = iLeft + 'px';
+    iLeft = (oContext.windowW - iW) / 2;
+    oContext.nNode.style.left = iLeft + 'px';
 
-    this.nNode.style.backgroundImage = 'url(' + this.oPicture.fpResizedSrc + ')'
+    oContext.nNode.style.backgroundImage = 'url(' + oContext.oPicture.fpResizedSrc + ')'
 
-    this.nNode.onmousemove = function(e) {
-        this.mouse = {
+    oContext.nNode.onmousemove = function(e) {
+        oContext.mouse = {
             x: e.pageX - iLeft,
             y: e.pageY - iTop
+        }
+
+        if(oContext.oEditor.activeElem) {
+            var sType = oContext.oEditor.activeElem.getAttribute('data-editor-type');
+
+            switch(sType) {
+                case 'in-v-top-drag':
+                case 'in-v-bottom-drag':
+                case 'in-v-center-drag':
+                    oContext.oEditor.activeElem.style.top = oContext.mouse.y - oContext.oEditor.iStartY + oContext.oEditor.iStartTop + 'px';
+                    break;
+                case 'in-h-drag':
+                    oContext.oEditor.activeElem.style.left = oContext.mouse.x - oContext.oEditor.iStartX + oContext.oEditor.iStartLeft + 'px';
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }
 
-WorkArea.prototype.setRealSizeByWidth = function(iRealWidth) {
+WorkArea.prototype.setRealSizeByWidth = function(iRealWidth, oContext) {
 
-    if(iRealWidth < this.oRange.iMaxW && iRealWidth > this.oRange.iMin) {
+    if(!oContext) {
+        oContext = this;
+    }
 
-        this.iRealW = iRealWidth;
-        this.iRealH = iRealWidth * (this.oPicture.iOriginalH / this.oPicture.iOriginalW);
+    if(iRealWidth < oContext.oRange.iMaxW && iRealWidth > oContext.oRange.iMin) {
+
+        oContext.iRealW = iRealWidth;
+        oContext.iRealH = iRealWidth * (oContext.oPicture.iOriginalH / oContext.oPicture.iOriginalW);
 
     } else {
         console.log('Ширина не входит в допустимый диапазон');
@@ -94,28 +120,29 @@ WorkArea.prototype.clearContent = function() {
 Рассчитывает коэффициенты пересчета величин,
 на которые надо умножить величину что бы получить другую
 */
-WorkArea.prototype.initCoeff = function(oBox) {
+WorkArea.prototype.initCoeff = function(oContext) {
 
-    //var iAvailHorPx = this.iW - (((this.oPreset.iSectionsCount - 1) * this.oSettings.iModulesOffset) + (this.oSettings.iEdgeOffset * 2));
-    //var iAvailVerPx = this.iH - (this.oSettings.iEdgeOffset * 2);
+    if(!oContext) {
+        oContext = this;
+    }
 
-    this.oCoef.pxToMmHor = this.iRealW / this.iW;
-    this.oCoef.pxToMmVer = this.iRealH / this.iH;
+    oContext.oCoef.pxToMmHor = this.iRealW / this.iW;
+    oContext.oCoef.pxToMmVer = this.iRealH / this.iH;
 
-    this.oCoef.mmToPxHor = this.iW / this.iRealW;
-    this.oCoef.mmToPxVer = this.iH / this.iRealH;
+    oContext.oCoef.mmToPxHor = this.iW / this.iRealW;
+    oContext.oCoef.mmToPxVer = this.iH / this.iRealH;
 
-    var iAvailHorPx = this.iW - ((((this.oPreset.iSectionsCount - 1) * this.oSettings.iModulesOffset) + (this.oSettings.iEdgeOffset * 2)) * this.oCoef.mmToPxHor);
-    var iAvailVerPx = this.iH - (this.oSettings.iEdgeOffset * 2) * this.oCoef.mmToPxVer;
+    var iAvailHorPx = oContext.iW - ((((oContext.oPreset.iSectionsCount - 1) * oContext.oSettings.iModulesOffset) + (oContext.oSettings.iEdgeOffset * 2)) * oContext.oCoef.mmToPxHor);
+    var iAvailVerPx = oContext.iH - (oContext.oSettings.iEdgeOffset * 2) * oContext.oCoef.mmToPxVer;
 
-    this.oCoef.iAvailHor = iAvailHorPx;
-    this.oCoef.iAvailVer = iAvailVerPx;
+    oContext.oCoef.iAvailHor = iAvailHorPx;
+    oContext.oCoef.iAvailVer = iAvailVerPx;
 
-    this.oCoef.pxToPctHor = 100 / iAvailHorPx;
-    this.oCoef.pxToPctVer = 100 / iAvailVerPx;
+    oContext.oCoef.pxToPctHor = 100 / iAvailHorPx;
+    oContext.oCoef.pxToPctVer = 100 / iAvailVerPx;
 
-    this.oCoef.pctToPxHor = iAvailHorPx / 100;
-    this.oCoef.pctToPxVer = iAvailVerPx / 100;
+    oContext.oCoef.pctToPxHor = iAvailHorPx / 100;
+    oContext.oCoef.pctToPxVer = iAvailVerPx / 100;
 }
 
 /*
@@ -177,18 +204,22 @@ WorkArea.prototype.setPicture = function(oPicture) {
 
 }
 
-WorkArea.prototype.drawView = function() {
+WorkArea.prototype.drawView = function(oContext) {
 
-    var nSection, iEdge, iOffset, oContext, iLeft, iWidth, iWidthCumulative = 0;
+    if(!oContext) {
+        oContext = this;
+    }
 
-    iEdge = this.__proto__.getConvertedValue(this.oSettings.iEdgeOffset, 'mmtopxhor', this);
-    iOffset = this.__proto__.getConvertedValue(this.oSettings.iModulesOffset, 'mmtopxhor', this);
-    oContext = this;
+    var nSection, iEdge, iOffset, oContext, iLeft, iWidth, iWidthCumulative = 0, arHorEditPoints = [];
 
-    this.oPreset.arSections.forEach(function(oSection) {
+    iEdge = oContext.__proto__.getConvertedValue(oContext.oSettings.iEdgeOffset, 'mmtopxhor', oContext);
+    iOffset = oContext.__proto__.getConvertedValue(oContext.oSettings.iModulesOffset, 'mmtopxhor', oContext);
+
+    oContext.oPreset.arSections.forEach(function(oSection) {
 
         nSection = document.createElement('div');
         nSection.className = 'section';
+        nSection.setAttribute('data-section-id', oSection.i);
 
         nSection.style.top = oContext.__proto__.getConvertedValue(((100 - oSection.iH) / 2) + oSection.iHP, 'pcttopxver', oContext) + iEdge + 'px';
 
@@ -203,32 +234,191 @@ WorkArea.prototype.drawView = function() {
         iWidth = oContext.__proto__.getConvertedValue(oSection.iW, 'pcttopxhor', oContext);
         nSection.style.width = iWidth + 'px';
         iWidthCumulative += iWidth;
+
+        if(oSection.i != oContext.oPreset.arSections.length) {
+            arHorEditPoints.push({
+                coord: iWidthCumulative + iLeft,
+                l: oSection.i,
+                r: oSection.i + 1,
+                edge: iEdge
+            });
+        }
+
         nSection.style.height = oContext.__proto__.getConvertedValue(oSection.iH, 'pcttopxver', oContext) + 'px';
+
+        arVertEditNodes = oContext.__proto__.getVerticalEditNodes(oContext, oSection.i);
+
+        arVertEditNodes.forEach(function(nEdit) {
+            nSection.appendChild(nEdit);
+        });
 
         oContext.nNode.appendChild(nSection);
     });
+
+    arHorEditNodes = oContext.__proto__.getHorizontalEditNodes(oContext, arHorEditPoints);
+
+    arHorEditNodes.forEach(function(nEdit) {
+        oContext.nNode.appendChild(nEdit);
+    });
 }
 
-WorkArea.prototype.getVerticalEditNodes = function(iSecId) {
+WorkArea.prototype.getHorizontalEditNodes = function(oContext, arHorEditPoints) {
 
-    var nTop, nCenter, nBottom;
+    var nDiv, arEditColl = [];
+
+    arHorEditPoints.forEach(function(oPoint) {
+
+        nDiv = document.createElement('div');
+        nDiv.className = 'h-edit';
+        nDiv.style.left = oPoint.coord + 'px';
+        nDiv.style.width = oPoint.edge + 'px';
+        nDiv.setAttribute('data-section-l', oPoint.l);
+        nDiv.setAttribute('data-section-r', oPoint.r);
+        nDiv.setAttribute('data-editor-type', 'in-h-drag');
+
+        arEditColl.push(nDiv);
+    });
+
+    arEditColl.forEach(function(nNode) {
+
+        nNode.onmousedown = function(e) {
+            e.preventDefault();
+            if(!oContext.oEditor.activeElem) {
+                oContext.oEditor.activeElem = this;
+                oContext.oEditor.iStartX = oContext.mouse.x;
+                oContext.oEditor.iStartY = oContext.mouse.y;
+                oContext.oEditor.iStartLeft = parseInt(this.style.left) || 0;
+            }
+        };
+
+        nNode.onmouseup = function() {
+            oContext.__proto__.EditModelByDrag(oContext, oContext.mouse.x, oContext.mouse.y);
+        }
+
+    });
+
+    return arEditColl;
+}
+
+WorkArea.prototype.getVerticalEditNodes = function(oContext, iSecId) {
+
+    var nTop, nCenter, nBottom, arNodes;
 
     nTop = document.createElement('div');
     nTop.className = 'v-edit-top';
-    nTop.setAttribute('data-section-id');
+    nTop.setAttribute('data-section-id', iSecId);
+    nTop.setAttribute('data-editor-type', 'in-v-top-drag')
 
-    nTop.onmousedown = function() {
+    nBottom = document.createElement('div');
+    nBottom.className = 'v-edit-bot';
+    nBottom.setAttribute('data-section-id', iSecId);
+    nBottom.setAttribute('data-editor-type', 'in-v-bottom-drag');
 
-    };
+    nCenter = document.createElement('div');
+    nCenter.className = 'v-edit-cen';
+    nCenter.setAttribute('data-section-id', iSecId);
+    nCenter.setAttribute('data-editor-type', 'in-v-center-drag');
 
-    nTop.onmouseup = function() {
+    arNodes = [nTop, nCenter, nBottom];
 
-    }
+    arNodes.forEach(function(nNode) {
+        nNode.onmousedown = function(e) {
+            e.preventDefault();
+            if(!oContext.oEditor.activeElem) {
+                oContext.oEditor.activeElem = this;
+                oContext.oEditor.iStartX = oContext.mouse.x;
+                oContext.oEditor.iStartY = oContext.mouse.y;
+                oContext.oEditor.iStartTop = parseInt(this.style.top) || 0;
+            }
+        };
+
+        nNode.onmouseup = function() {
+            oContext.__proto__.EditModelByDrag(oContext, oContext.mouse.x, oContext.mouse.y);
+        }
+    });
+
+    return arNodes;
 
 }
 
-WorkArea.prototype.updateView = function() {
+WorkArea.prototype.EditModelByDrag = function(oContext, iX, iY) {
 
+    var sEditType, iYDelta, iXDelta, iSecId, oSection, iLeftSec, iRightSec, oLeft, oRight;
+    if(oContext.oEditor.activeElem) {
+        sEditType = oContext.oEditor.activeElem.getAttribute('data-editor-type');
+    } else {
+        return;
+    }
+    switch(sEditType) {
+        case 'in-v-top-drag':
+        case 'in-v-bottom-drag':
+
+            iYDelta = iY - oContext.oEditor.iStartY;
+            iYDelta = oContext.__proto__.getConvertedValue(iYDelta, 'pxtopctver', oContext);
+            iSecId = oContext.oEditor.activeElem.getAttribute('data-section-id');
+            oSection = oContext.oPreset.__proto__.getSectionById(oContext, iSecId);
+
+            if(sEditType == 'in-v-top-drag') {
+                oSection.iH -= iYDelta;
+            } else {
+                oSection.iH += iYDelta;
+            }
+
+            oSection.iHP += iYDelta / 2;
+            oContext.oPreset.__proto__.editSectionById(oContext, iSecId, oSection);
+            oContext.__proto__.reDrawPreset(oContext);
+
+            break;
+
+        case 'in-v-center-drag':
+
+            iYDelta = iY - oContext.oEditor.iStartY;
+            iYDelta = oContext.__proto__.getConvertedValue(iYDelta, 'pxtopctver', oContext);
+            iSecId = oContext.oEditor.activeElem.getAttribute('data-section-id');
+            oSection = oContext.oPreset.__proto__.getSectionById(oContext, iSecId);
+
+            oSection.iHP += iYDelta;
+            oContext.oPreset.__proto__.editSectionById(oContext, iSecId, oSection);
+            oContext.__proto__.reDrawPreset(oContext);
+
+            break;
+
+        case 'in-h-drag':
+
+            iXDelta = iX - oContext.oEditor.iStartX;
+            iXDelta = oContext.__proto__.getConvertedValue(iXDelta, 'pxtopcthor', oContext);
+            iLeftSec = oContext.oEditor.activeElem.getAttribute('data-section-l');
+            iRightSec = oContext.oEditor.activeElem.getAttribute('data-section-r');
+
+            oLeft = oContext.oPreset.__proto__.getSectionById(oContext, iLeftSec);
+            oRight = oContext.oPreset.__proto__.getSectionById(oContext, iRightSec);
+
+            oLeft.iW += iXDelta;
+            oRight.iW -= iXDelta;
+
+            oContext.oPreset.__proto__.editSectionById(oContext, iLeftSec, oLeft);
+            oContext.oPreset.__proto__.editSectionById(oContext, iRightSec, oRight);
+            oContext.__proto__.reDrawPreset(oContext);
+
+            break;
+
+        case 'o-h-pic-size-grag':
+            //перевести дельту в милиметры
+            //пересчитать все представление
+            break;
+        default:
+            break;
+    }
+
+    oContext.oEditor.activeElem = false;
+    oContext.oEditor.iStartY = false;
+    oContext.oEditor.iStartX = false;
+
+}
+
+WorkArea.prototype.reDrawPreset = function(oContext) {
+    oContext.nNode.innerHTML = '';
+    oContext.__proto__.drawView(oContext);
 }
 
 /*
@@ -258,6 +448,24 @@ function Preset(bAllowHorizontal, bAllowVertical) {
     this.iSectionsCount = 0;
     this.bAllowHorizontal = bAllowHorizontal;
     this.bAllowVertical = bAllowVertical;
+}
+
+Preset.prototype.getSectionById = function(oContext, iSecId) {
+    for(var i = 0; i < oContext.oPreset.arSections.length; i++) {
+        var oSection = oContext.oPreset.arSections[i];
+        if(oSection.i == iSecId) {
+            return oSection;
+        }
+    }
+}
+
+Preset.prototype.editSectionById = function(oContext, iSecId, oSection) {
+    for(var i = 0; i < oContext.oPreset.arSections.length; i++) {
+        var oSection = oContext.oPreset.arSections[i];
+        if(oSection.i == iSecId) {
+            oContext.oPreset.arSections[i] = oSection;
+        }
+    }
 }
 
 Preset.prototype.appendSection = function(oSection) {                           //Добавляет по одной секции
