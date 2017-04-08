@@ -68,6 +68,7 @@ WorkArea.prototype.initNode = function(oContext) {
     oContext.nNode.style.backgroundImage = 'url(' + oContext.oPicture.fpResizedSrc + ')'
 
     oContext.nNode.onmousemove = function(e) {
+
         oContext.mouse = {
             x: e.pageX - iLeft,
             y: e.pageY - iTop
@@ -80,16 +81,117 @@ WorkArea.prototype.initNode = function(oContext) {
                 case 'in-v-top-drag':
                 case 'in-v-bottom-drag':
                 case 'in-v-center-drag':
-                    oContext.oEditor.activeElem.style.top = oContext.mouse.y - oContext.oEditor.iStartY + oContext.oEditor.iStartTop + 'px';
+
+                    var iYDelta, iAvailVer, iMinHeight, iEdge, nSection, oValues, bIsAllowed;
+
+                    iAvailVer = oContext.oCoef.iAvailVer;
+                    iMinHeight = oContext.__proto__.getConvertedValue(oContext.oSettings.iFrameMinSize, 'mmtopxver', oContext);
+                    iEdge = oContext.__proto__.getConvertedValue(oContext.oSettings.iEdgeOffset, 'mmtopxver', oContext);
+                    iYDelta = oContext.mouse.y - oContext.oEditor.iStartY + oContext.oEditor.iStartTop;
+                    oValues = {
+                        iMinHeight: iMinHeight,
+                        iMaxHeigth: iAvailVer,
+                        iEdge: iEdge,
+                        iYDelta: iYDelta
+                    };
+
+                    bIsAllowed = oContext.__proto__.validateDragEdit(oContext, sType, oValues);
+
+                    if(!bIsAllowed) {
+                        oContext.__proto__.EditModelByDrag(oContext, oContext.mouse.x, oContext.mouse.y);
+                    }
+
                     break;
                 case 'in-h-drag':
-                    oContext.oEditor.activeElem.style.left = oContext.mouse.x - oContext.oEditor.iStartX + oContext.oEditor.iStartLeft + 'px';
+
+                    var iXDelta, bIsAllowed;
+
+                    iXDelta = oContext.mouse.x - oContext.oEditor.iStartX;
+                    iMinWidth = oContext.__proto__.getConvertedValue(oContext.oSettings.iFrameMinSize, 'mmtopxhor', oContext);
+
+                    oValues = {
+                        iXDelta: iXDelta,
+                        iMinWidth: iMinWidth
+                    }
+
+                    bIsAllowed = oContext.__proto__.validateDragEdit(oContext, sType, oValues);
+
+                    if(bIsAllowed) {
+                        oContext.oEditor.activeElem.style.left = oContext.mouse.x - oContext.oEditor.iStartX + oContext.oEditor.iStartLeft + 'px';
+                    } else {
+                        oContext.__proto__.EditModelByDrag(oContext, oContext.mouse.x, oContext.mouse.y);
+                    }
                     break;
                 default:
                     break;
             }
         }
     }
+}
+
+WorkArea.prototype.validateDragEdit = function(oContext, sType, oValues) {
+
+    var bIsAllowed = false;
+
+    switch(sType) {
+        case 'in-v-top-drag':
+
+            if(oContext.oEditor.oSection.top + oValues.iYDelta > oValues.iEdge
+                && oContext.oEditor.oSection.height - oValues.iYDelta > oValues.iMinHeight) {
+                bIsAllowed = true;
+            }
+
+            if(bIsAllowed === true) {
+                oContext.oEditor.oSection.nNode.style.top = oContext.oEditor.oSection.top + oValues.iYDelta + 'px';
+                oContext.oEditor.oSection.nNode.style.height = oContext.oEditor.oSection.height - oValues.iYDelta + 'px';
+            }
+            break;
+
+        case 'in-v-center-drag':
+            if(oContext.oEditor.oSection.top + oValues.iYDelta > oValues.iEdge
+                && oContext.oEditor.oSection.top + oContext.oEditor.oSection.height + oValues.iYDelta < oValues.iEdge + oValues.iMaxHeigth) {
+                bIsAllowed = true;
+            }
+
+            if(bIsAllowed === true) {
+                oContext.oEditor.oSection.nNode.style.top = oContext.oEditor.oSection.top + oValues.iYDelta + 'px';
+            }
+            break;
+
+        case 'in-v-bottom-drag':
+            if(oContext.oEditor.oSection.top + oContext.oEditor.oSection.height + oValues.iYDelta < oValues.iEdge + oValues.iMaxHeigth
+                && oContext.oEditor.oSection.height + oValues.iYDelta > oValues.iMinHeight) {
+                bIsAllowed = true;
+            }
+
+            if(bIsAllowed === true) {
+                oContext.oEditor.oSection.nNode.style.height = oContext.oEditor.oSection.height + oValues.iYDelta + 'px';
+            }
+            break;
+
+        case 'in-h-drag':
+            //проверить что ширина обоих колонн, после модификаии не будет меньше заданной
+            if(oContext.oEditor.oSection.nLeftNode.width + oValues.iXDelta > iMinWidth
+                && oContext.oEditor.oSection.nRightNode.width - oValues.iXDelta > iMinWidth) {
+                bIsAllowed = true;
+            }
+
+            if(bIsAllowed === true) {
+                var nLeft = oContext.oEditor.oSection.nLeftNode.node;
+                var nRight = oContext.oEditor.oSection.nRightNode.node;
+
+                nLeft.style.width = oContext.oEditor.oSection.nLeftNode.width + oValues.iXDelta + 'px';
+                nRight.style.width = oContext.oEditor.oSection.nRightNode.width - oValues.iXDelta + 'px';
+                nRight.style.left = oContext.oEditor.oSection.nRightNode.left + oValues.iXDelta + 'px';
+            }
+
+            break;
+
+        default:
+            break;
+    }
+
+    return bIsAllowed;
 }
 
 WorkArea.prototype.setRealSizeByWidth = function(iRealWidth, oContext) {
@@ -281,13 +383,31 @@ WorkArea.prototype.getHorizontalEditNodes = function(oContext, arHorEditPoints) 
 
     arEditColl.forEach(function(nNode) {
 
+        var lNode, rNode;
+
         nNode.onmousedown = function(e) {
             e.preventDefault();
             if(!oContext.oEditor.activeElem) {
                 oContext.oEditor.activeElem = this;
                 oContext.oEditor.iStartX = oContext.mouse.x;
                 oContext.oEditor.iStartY = oContext.mouse.y;
-                oContext.oEditor.iStartLeft = parseInt(this.style.left) || 0;
+                oContext.oEditor.iStartLeft = parseFloat(this.style.left) || 0;
+
+                lNode = document.querySelector('.section[data-section-id="' + this.getAttribute('data-section-l') + '"]');
+                rNode = document.querySelector('.section[data-section-id="' + this.getAttribute('data-section-r') + '"]');
+
+                oContext.oEditor.oSection = {
+                    nLeftNode: {
+                        node: lNode,
+                        width: parseFloat(lNode.style.width)
+                    },
+                    nRightNode: {
+                        node: rNode,
+                        width: parseFloat(rNode.style.width),
+                        left: parseFloat(rNode.style.left)
+                    },
+
+                }
             }
         };
 
@@ -328,7 +448,12 @@ WorkArea.prototype.getVerticalEditNodes = function(oContext, iSecId) {
                 oContext.oEditor.activeElem = this;
                 oContext.oEditor.iStartX = oContext.mouse.x;
                 oContext.oEditor.iStartY = oContext.mouse.y;
-                oContext.oEditor.iStartTop = parseInt(this.style.top) || 0;
+                oContext.oEditor.iStartTop = parseFloat(this.style.top) || 0;
+                oContext.oEditor.oSection = {
+                    nNode: this.parentNode,
+                    top: parseFloat(this.parentNode.style.top),
+                    height: parseFloat(this.parentNode.style.height)
+                }
             }
         };
 
@@ -419,6 +544,7 @@ WorkArea.prototype.EditModelByDrag = function(oContext, iX, iY) {
 WorkArea.prototype.reDrawPreset = function(oContext) {
     oContext.nNode.innerHTML = '';
     oContext.__proto__.drawView(oContext);
+    console.log('re-draw complete!');
 }
 
 /*
