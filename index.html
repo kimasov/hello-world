@@ -11,19 +11,34 @@
         <script type="text/javascript" src="./script.js"></script>
 
         <script>
-            var oPicture = new Picture('./images/macro.jpg', 1920, 1200, false, false);
+            var oPicture = new Picture(
+                './images/macro.jpg',       //Путь к изображению
+                1920,                       //Ширина, пикс
+                1200,                       //Высота, пикс
+                false,
+                false
+            );
 
+            /*
+             * {Ширина, %; Высота, %; Вертикальная позиция относительно центра %}
+             */
             var jsonPreset = `[
-                {"iW":32, "iH":75, "iHP":-5},
-                {"iW":36, "iH":100, "iHP":0},
-                {"iW":32, "iH":75, "iHP":5}
+                {"iW":25, "iH":75, "iHP":-5},
+                {"iW":25, "iH":100, "iHP":0},
+                {"iW":25, "iH":75, "iHP":5},
+                {"iW":25, "iH":75, "iHP":5}
             ]`;
 
             var oPreset = new Preset(true, false);
 
             oPreset.getSectionsFromJson(jsonPreset);
 
-            var oSettings = new Settings(25, 25, 300, 0.5);
+            var oSettings = new Settings(
+                25,             //Отступ между соседними картинками, мм
+                25,             //Отступ от края, мм
+                300,            //Минимальная величина рамки, мм (пока не учитывается)
+                0.5             //Коэф. [мм / пикс] - т.е сколько реальных милиметров с пикселя мы можем распечатать
+            );
 
             var oWorkArea = new WorkArea(document.getElementById('workarea'), oSettings, 1000, 700);
 

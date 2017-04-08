@@ -41,3 +41,11 @@
     background-color: blue;
     align-self: flex-end;
 }
+
+.h-edit {
+    height: 10%;
+    top: 45%;
+    position: absolute;
+    background-color: yellow;
+    align-self: center;
+}
